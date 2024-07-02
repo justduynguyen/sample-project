@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-project
+  namespace: registry
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sample-project
+  template:
+    metadata:
+      labels:
+        app: sample-project
+    spec:
+      containers:
+      - name: sample-project
+        image: registry.getsoft.vn/sample-project:latest
+        ports:
+        - containerPort: 3000
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: new-local-path-pvc

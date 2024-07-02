@@ -1,0 +1,104 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sample
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sample-pvc
+  namespace: sample
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: local-path
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-project
+  namespace: sample
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sample-project
+  template:
+    metadata:
+      labels:
+        app: sample-project
+    spec:
+      imagePullSecrets:
+      - name: registry-secret
+      containers:
+      - name: sample-project
+        image: registry.getsoft.vn/sample-project:latest
+        ports:
+        - containerPort: 3000
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: sample-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sample-project
+  namespace: sample
+spec:
+  selector:
+    app: sample-project
+  ports:
+  - protocol: TCP
+    port: 3000
+    targetPort: 3000
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sample-ingress
+  namespace: sample
+  annotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: sample.s1.getsoft.vn
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: sample-project
+            port:
+              number: 3000
+  tls:
+  - hosts:
+    - sample.s1.getsoft.vn
+    secretName: sample-tls
+
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: sample-cert
+  namespace: sample
+spec:
+  secretName: sample-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  commonName: sample.s1.getsoft.vn
+  dnsNames:
+  - sample.s1.getsoft.vn
