@@ -46,6 +46,9 @@ jobs:
         KUBECONFIG: ${{ secrets.KUBECONFIG }}
       run: echo "${KUBECONFIG}" > $HOME/.kube/config
 
+    - name: Check Kubernetes Connection
+      run: kubectl cluster-info
+
     - name: Deploy to Kubernetes
       run: |
         kubectl apply -f k8s/deployment.yaml
@@ -60,8 +63,16 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
+    - name: Install ArgoCD CLI
+      run: |
+        VERSION=$(curl --silent "https://api.github.com/repos/argoproj/argo-cd/releases/latest" | jq -r .tag_name)
+        curl -sSL -o argocd-linux-amd64 "https://github.com/argoproj/argo-cd/releases/download/$VERSION/argocd-linux-amd64"
+        chmod +x argocd-linux-amd64
+        sudo mv argocd-linux-amd64 /usr/local/bin/argocd
+
     - name: Sync ArgoCD Application
       run: |
+        argocd login argocd.getsoft.vn --username admin --password ${{ secrets.ARGOCD_PASSWORD }} --insecure
         argocd app sync sample-project
         argocd app wait sample-project --health --timeout 300
       env:
