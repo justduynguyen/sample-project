@@ -1,0 +1,19 @@
+# application.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sample-project
+  namespace: argocd
+spec:
+  destination:
+    namespace: sample-project
+    server: 'https://kubernetes.default.svc'
+  source:
+    path: '.'
+    repoURL: 'https://github.com/justduynguyen/sample-project.git'
+    targetRevision: main
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
