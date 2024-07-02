@@ -71,5 +71,12 @@ jobs:
     - name: Sync ArgoCD Application
       run: |
         argocd login argocd.getsoft.vn --username admin --password ${{ secrets.ARGOCD_PASSWORD }} --insecure --grpc-web
-        argocd app sync sample-project
-        argocd app wait sample-project --health --timeout 300
+        for i in {1..5}; do
+          if argocd app sync sample-project; then
+            argocd app wait sample-project --health --timeout 300
+            break
+          else
+            echo "Sync failed, retrying in $((i*i)) seconds..."
+            sleep $((i*i))
+          fi
+        done
